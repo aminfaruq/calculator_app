@@ -31,6 +31,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String screenText = '0';
+  String firstOperand = '';
+  String secondOperand = '';
+  String operator = '';
+  bool isOperatorPressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(0),
             shrinkWrap: true,
             crossAxisCount: 4,
-            physics: const NeverScrollableScrollPhysics(), // Add this line
+            physics: const NeverScrollableScrollPhysics(),
             children: buildCalculatorButtons(context),
           ),
         ],
@@ -89,11 +93,11 @@ class _MyHomePageState extends State<MyHomePage> {
         }, icon: Icons.backspace);
       } else if (text == '+' || text == '-' || text == 'x' || text == '/') {
         return buildCalculatorButton(context, text, () {
-          // TODO: Add your logic for operators
+          handleOperatorPressed(text);
         });
       } else if (text == '=') {
         return buildCalculatorButton(context, text, () {
-          // TODO: Add your logic for equals
+          handleEqualsPressed();
         });
       } else {
         return onNumberPressed(context, text);
@@ -103,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget onNumberPressed(BuildContext context, String text) {
     return buildCalculatorButton(context, text, () {
-      pressNumber(int.parse(text));
+      handleNumberPressed(text);
     });
   }
 
@@ -124,7 +128,81 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void pressNumber(int number) {
     setState(() {
-      screenText = (screenText == '0') ? '$number' : '$screenText$number';
+      if (screenText == '0' || isOperatorPressed) {
+        screenText = '$number';
+        isOperatorPressed = false;
+      } else {
+        screenText = '$screenText$number';
+      }
+    });
+  }
+
+  void handleNumberPressed(String text) {
+    if (text == '.' && screenText.contains('.')) {
+      return; // Avoid multiple decimal points
+    }
+
+    if (isOperatorPressed) {
+      screenText = text;
+      isOperatorPressed = false;
+    } else {
+      screenText = (screenText == '0') ? text : '$screenText$text';
+    }
+  }
+
+  void handleOperatorPressed(String newOperator) {
+    if (firstOperand.isEmpty) {
+      firstOperand = screenText;
+    } else {
+      secondOperand = screenText;
+      performCalculation();
+      firstOperand = screenText;
+      secondOperand = '';
+    }
+    operator = newOperator;
+    isOperatorPressed = true;
+  }
+
+  void handleEqualsPressed() {
+    if (firstOperand.isNotEmpty && secondOperand.isEmpty) {
+      secondOperand = screenText;
+    }
+    performCalculation();
+    operator = '';
+    isOperatorPressed = true;
+  }
+
+  void performCalculation() {
+    if (operator.isEmpty || firstOperand.isEmpty || secondOperand.isEmpty) {
+      return;
+    }
+
+    double num1 = double.parse(firstOperand);
+    double num2 = double.parse(secondOperand);
+    double result = 0;
+
+    switch (operator) {
+      case '+':
+        result = num1 + num2;
+        break;
+      case '-':
+        result = num1 - num2;
+        break;
+      case 'x':
+        result = num1 * num2;
+        break;
+      case '/':
+        if (num2 != 0) {
+          result = num1 / num2;
+        } else {
+          // Handle division by zero
+          result = 0;
+        }
+        break;
+    }
+
+    setState(() {
+      screenText = result.toString();
     });
   }
 
@@ -134,12 +212,15 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Theme.of(context).primaryColor,
         child: Align(
           alignment: Alignment.centerRight,
-          child: Text(
-            '0',
-            style: Theme.of(context)
-                .textTheme
-                .headline3!
-                .copyWith(color: Colors.white),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              screenText,
+              style: Theme.of(context)
+                  .textTheme
+                  .headline3!
+                  .copyWith(color: Colors.white),
+            ),
           ),
         ),
       ),
